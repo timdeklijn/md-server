@@ -1,0 +1,12 @@
+[package]
+name = "static_server"
+version = "0.1.0"
+authors = ["Tim de Klijn <timdeklijn@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tide = "0.13.0"
+async-std = { version = "1.6.0", features = ["attributes"] }
+comrak = "0.8"
