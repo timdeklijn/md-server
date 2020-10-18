@@ -1,50 +1,32 @@
 use comrak::{markdown_to_html, ComrakOptions};
 use std::fs::read_to_string;
 use std::path::Path;
-use std::sync::Arc;
 use tide::http::headers::HeaderValue;
 use tide::security::{CorsMiddleware, Origin};
-use tide::{Middleware, Next, Request, Response, StatusCode};
-
-use crate::loader::Content;
-
-struct DB {
-    l: Arc<Vec<Content>>,
-}
-
-#[tide::utils::async_trait]
-impl<State: Clone + Send + Sync + 'static> Middleware<State> for DB {
-    async fn handle(&self, mut req: Request<State>, next: Next<'_, State>) -> tide::Result {
-        tide::log::trace!("Hit middleware");
-        Ok(self.l)
-    }
-}
-
-fn file_to_html() -> String {
-    let path = Path::new("files/tst.md");
-    let content = read_to_string(path).expect("Error while reading file");
-    markdown_to_html(&content, &ComrakOptions::default())
-}
+use tide::{Request, Response, StatusCode};
 
 async fn render_file(req: Request<()>) -> tide::Result {
-    let mut file_id: String = req.param("id")?;
-    file_id = file_id.parse().unwrap();
-    let text = file_to_html();
+    let folder: String = req.param("folder")?;
+    let file_id: String = req.param("id")?;
+    let path = format!("{}/{}.md", folder, file_id);
+    let path = Path::new(&path);
+    tide::log::info!("Folder: {}, File id: {}", folder, file_id);
+    tide::log::info!("Path: {:?}", path);
+    let content = read_to_string(path).expect("Error while reading file");
+    let html = markdown_to_html(&content, &ComrakOptions::default());
     let mut res = Response::new(StatusCode::Ok);
     res.insert_header("Content-Type", "text/html");
-    res.set_body("<h1>HALLO</h1>".to_string());
+    res.set_body(html);
     Ok(res)
 }
 
-pub fn create_server(content: &Vec<Content>) -> tide::Server<()> {
-    let db = DB { l: *content };
+pub fn create_server() -> tide::Server<()> {
     let cors = CorsMiddleware::new()
         .allow_methods("GET".parse::<HeaderValue>().unwrap())
         .allow_origin(Origin::from("*"))
         .allow_credentials(false);
     let mut app = tide::new();
-    app.with(db);
     app.with(cors);
-    app.at("/post/:id").get(render_file);
+    app.at("/:folder/:id").get(render_file);
     app
 }
