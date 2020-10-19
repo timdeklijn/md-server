@@ -5,7 +5,7 @@ server to a folder containing markdown files.
 
 ## TODO
 
-* [ ] Only load markdown files
-* [ ] Add index page to "/"
+* [x] Only load markdown files
+* [x] Add index page to "/"
 * [ ] Configure the application
 * [ ] Add tests
