@@ -1,6 +1,8 @@
 use comrak::{markdown_to_html, ComrakOptions};
+use serde::Deserialize;
 use std::fs::read_to_string;
-use std::path::Path;
+use std::io;
+use std::path::{Path, PathBuf};
 use tide::http::headers::HeaderValue;
 use tide::security::{CorsMiddleware, Origin};
 use tide::{Request, Response, StatusCode};
@@ -57,11 +59,67 @@ fn load_file_or_404(folder: String, file_id: String) -> String {
     add_html_header(add_body_to_html(html))
 }
 
+/// Recursively list all files in p and its nested folders.
+fn find_all_files(p: &Path) -> io::Result<Vec<PathBuf>> {
+    let mut ff = Vec::new();
+    for entry in p.read_dir()? {
+        let entry = entry?;
+        let entry_path = entry.path();
+        if entry_path.is_dir() {
+            // Recurse to find markdown files in subfolders
+            ff.extend(find_all_files(&entry_path)?.iter().cloned());
+        } else {
+            // Check only for markdown files
+            let ex = entry_path
+                .extension()
+                .expect("Error getting file extension");
+            if ex == "md" {
+                ff.push(entry_path);
+            }
+        }
+    }
+    Ok(ff)
+}
+
+/// From a pathfub, create a list element with a link.
+fn create_link(s: PathBuf) -> String {
+    let f = s.file_stem().unwrap();
+    let p = s.parent().unwrap();
+    let addr = format!(
+        "http://127.0.0.1:8080/posts?folder={}&id={}",
+        p.to_string_lossy(),
+        f.to_string_lossy()
+    );
+    format!("<li><a href='{}'>{}</a></li>", addr, s.to_string_lossy())
+}
+
+/// "/" endpoint, create overview of all files.
+async fn home(_req: Request<()>) -> tide::Result {
+    let p = Path::new(&"files");
+    let files = find_all_files(&p)?;
+    let mut links = Vec::new();
+    for f in files {
+        links.push(create_link(f))
+    }
+    let links = links.join("\n");
+    let s = format!("<h1>Index</h1>\n<ul>\n{}\n</ul>", links);
+    let mut res = Response::new(StatusCode::Ok);
+    res.insert_header("Content-Type", "text/html");
+    let body = add_html_header(add_body_to_html(s.to_string()));
+    res.set_body(body);
+    Ok(res)
+}
+
+#[derive(Deserialize, Debug)]
+struct File {
+    folder: String,
+    id: String,
+}
+
 /// Process the request, load the file and return a html page.
 async fn render_file(req: Request<()>) -> tide::Result {
-    let folder: String = req.param("folder")?;
-    let file_id: String = req.param("id")?;
-    let html = load_file_or_404(folder, file_id);
+    let file: File = req.query().expect("Error parsing query string");
+    let html = load_file_or_404(file.folder, file.id);
     let mut res = Response::new(StatusCode::Ok);
     res.insert_header("Content-Type", "text/html");
     res.set_body(html);
@@ -76,7 +134,8 @@ pub fn create_server() -> tide::Server<()> {
         .allow_credentials(false);
     let mut app = tide::new();
     app.with(cors);
-    app.at("/:folder/:id").get(render_file);
+    app.at("/").get(home);
+    app.at("/posts").get(render_file);
     app.at("/static")
         .serve_dir("static/")
         .expect("Static folder not found");
