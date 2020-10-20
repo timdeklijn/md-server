@@ -32,7 +32,8 @@ fn add_html_header(html: String) -> String {
     )
 }
 
-/// Surround a string with a body and div tag
+/// Surround a string with a body a div tag
+/// and a footer. Also put in a nav.
 fn add_body_to_html(html: String) -> String {
     format!(
         r#"
@@ -66,7 +67,27 @@ fn load_file_or_404(folder: String, file_id: String) -> String {
         },
         false => create_404_md("Not a file"),
     };
-    let html = markdown_to_html(&content, &ComrakOptions::default());
+
+    // Configure comrak
+    let mut options = ComrakOptions::default();
+    options.extension.autolink = true;
+    options.extension.table = true;
+    // Convert markdown
+    let html = markdown_to_html(&content, &options);
+
+    // Style checkboxes using symbols
+    let checkbox = "&#x2610;";
+    let checkedbox = "&#9745;";
+    let html = html.replace("[ ]", checkbox);
+    let html = html.replace("[x]", checkedbox);
+    let html = html.replace("[X]", checkedbox);
+
+    // Style tables using pureCSS
+    let html = html.replace(
+        "<table>",
+        "<table class='pure-table pure-table-horizontal'>",
+    );
+
     add_html_header(add_body_to_html(html))
 }
 
@@ -80,13 +101,17 @@ fn find_all_files(p: &Path) -> io::Result<Vec<PathBuf>> {
             // Recurse to find markdown files in subfolders
             ff.extend(find_all_files(&entry_path)?.iter().cloned());
         } else {
-            // Check only for markdown files
-            let ex = entry_path
-                .extension()
-                .expect("Error getting file extension");
-            if ex == "md" {
-                ff.push(entry_path);
-            }
+            // Try to get a file extension
+            let ex = entry_path.extension();
+            match ex {
+                // Check only for markdown files
+                Some(ex) => {
+                    if ex == "md" {
+                        ff.push(entry_path)
+                    }
+                }
+                None => continue,
+            };
         }
     }
     Ok(ff)
@@ -106,7 +131,7 @@ fn create_link(s: PathBuf) -> String {
 
 /// "/" endpoint, create overview of all files.
 async fn home(_req: Request<()>) -> tide::Result {
-    let p = Path::new(&"files");
+    let p = Path::new(&"/home/tim/Documents/notes");
     let files = find_all_files(&p)?;
     let mut links = Vec::new();
     for f in files {

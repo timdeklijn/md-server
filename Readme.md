@@ -9,6 +9,7 @@ server to a folder containing markdown files.
 * [x] Add index page to "/"
 * [x] Style index page
 * [x] Add navbar
+* [x] Render checkboxes as checkboxes
 * [ ] Better populate index page (using sub headers?)
 * [ ] Use root folder as config/cli argument
 * [ ] Configure the application
