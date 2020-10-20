@@ -1,7 +1,25 @@
 body {
-	font-family: 'Roboto', sans-serif;
+	font-family: 'Nunito';
 }
-h1 {
-	font-size; 300%;
-	margin-top: 3rem;
+.pure-menu {
+	background: teal;
+}
+.pure-menu-link {
+	color: white;
+	font-size: 40px;
+	letter-spacing: 0px;
+}
+.pure-menu-link:hover {
+	background-color: lightgrey;
+}
+.container {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	margin: auto;
+}
+footer {
+	position: relative;
+	text-align: center;
+	bottom: -80px;
 }

@@ -18,10 +18,14 @@ fn create_404_md(e: &str) -> String {
 fn add_html_header(html: String) -> String {
     let style = "http://127.0.0.1:8080/static/style.css";
     format!(
-        r#"<head>
-<link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css">
-<link rel='stylesheet' href='{}'>
+        r#"
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.3/build/pure-min.css">
+  <link rel='stylesheet' href='{}'>
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.2/styles/github.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.2/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
 </head>
 {}"#,
         style, html
@@ -31,11 +35,18 @@ fn add_html_header(html: String) -> String {
 /// Surround a string with a body and div tag
 fn add_body_to_html(html: String) -> String {
     format!(
-        r#"<body>
-<div class="container-sm">
-{}
-<footer>Tim de Klijn, 2020</footer>
-</div>
+        r#"
+<body>
+  <div class="pure-g">
+    <div class="pure-menu pure-menu-horizontal">
+      <a href="http://127.0.0.1:8080/" 
+        class="pure-menu-heading pure-menu-link">Home</a>
+    </div>
+    <div class="container pure-u-2-3">
+      {}
+    </div>
+  </div>
+  <footer>Tim de Klijn, 2020</footer>
 </body>"#,
         html
     )
